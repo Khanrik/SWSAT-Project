@@ -1,0 +1,14 @@
+{
+  "antenna_count_by_station": {
+    "GS1": 2,
+    "GS2": 1,
+    "GS3": 1
+  },
+  "min_spacing_minutes_by_station": {
+    "GS1": 3,
+    "GS2": 5,
+    "GS3": 4
+  },
+  "max_downlink_mb_per_day": 12000,
+  "max_passes_per_day": 20
+}
