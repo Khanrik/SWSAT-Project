@@ -4,7 +4,7 @@ Lab 4 — Scheduling & Flight Plan
 Follows the cosntraints
 - No overlap
 - No duration below `MIN_DURATION_MINUTES`
-- Sorted by the decision rule **Earliest finish time first**
+- Sorted by the decision rule **Earliest start time first**
 
 Constraints must be evaluated in this exact order:
 
@@ -24,19 +24,18 @@ from datetime import datetime
 import pandas as pd
 
 POLICY_PATH = "backend/src/models/input1_policy_medium.json"
-MIN_DURATION_MINUTES = 8
 
 def load_policies(filename):
     with open(filename, "r") as f:
         data = json.load(f)
 
-    return data["antenna_count_by_station"], \
-        data["min_spacing_minutes_by_station"], \
-        data["max_downlink_mb_per_day"], \
-        data["max_passes_per_day"]
+    return  data["antenna_count_by_station"], \
+            data["min_spacing_minutes_by_station"], \
+            data["max_downlink_mb_per_day"], \
+            data["max_passes_per_day"]
 
 def parse_time(ts):
-    return datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ")
+    return datetime.strptime(ts, "%Y-%m-%dT%H:%M:%S")
 
 
 def duration_minutes(start, end):
@@ -47,10 +46,54 @@ def load_passes(filename):
     with open(filename, "r") as f:
         data = json.load(f)
 
-    return data["satellite_id"], data["date"], data["passes"]
+    return data["passes"]
 
 
-def filter_valid_passes(passes, antenna_limits, min_spacing_minutes, cum_downlink_budget, max_passes_per_day):
+def capacity_valid(candidate, valid_passes, antenna_limit):
+    overlap_count = 0
+
+    for p in valid_passes:
+        if p["station_id"] != candidate["station_id"]:
+            continue
+
+        if parse_time(p["start_time"]) < parse_time(candidate["end_time"]) and parse_time(p["end_time"]) > parse_time(candidate["start_time"]):
+            overlap_count += 1
+    
+    return overlap_count < antenna_limit
+
+
+def spacing_valid(candidate, valid_passes, min_spacing_minutes):
+    valid = True
+    for p in valid_passes:
+        if p["station_id"] != candidate["station_id"]:
+            continue
+
+        if parse_time(p["start_time"]) < parse_time(candidate["end_time"]) and parse_time(p["end_time"]) > parse_time(candidate["start_time"]):
+            continue
+
+        if(not (abs(duration_minutes(parse_time(p["start_time"]), parse_time(candidate["end_time"]))) >= min_spacing_minutes)):
+           valid = False
+
+        if(not (abs(duration_minutes(parse_time(candidate["start_time"]), parse_time(p["end_time"]))) >= min_spacing_minutes)):
+            valid = False
+
+    return valid
+
+def downlink_budget_valid(candidate, valid_passes, max_downlink_budget):
+    cumulative_downlink = sum(p["downlink_mb"] for p in valid_passes) + candidate["downlink_mb"]
+    return cumulative_downlink <= max_downlink_budget
+
+
+def max_passes_valid(valid_passes, max_passes_per_day):
+    return len(valid_passes) < max_passes_per_day
+
+
+def filter_valid_passes(passes, 
+                        antenna_limits, 
+                        min_spacing_minutes, 
+                        max_downlink_budget, 
+                        max_passes_per_day,
+                        validation_dict):
     """
     You must:
     - Reject passes if above antenna limits (concurrency)
@@ -60,69 +103,42 @@ def filter_valid_passes(passes, antenna_limits, min_spacing_minutes, cum_downlin
     
     the first violated constraint determines the rejection reason. Do not reorder constraints.
     """
-
     valid = []
-    station_counter = {
-        "GS1": 0,
-        "GS2": 0,
-        "GS3": 0
-    }
 
+    
+
+    
     for p in passes:
-        start = parse_time(p["start_time"])
-        end = parse_time(p["end_time"])
-        station = p["station_id"]
-        downlink_mb = p["downlink_mb"]
+        if not capacity_valid(p, valid, antenna_limits[p["station_id"]]):
+            validation_dict["CAPACITY_CONFLICT"] += 1
+            print(f"Capacity conflict for pass {p['pass_id']} at station {p['station_id']}")
+            continue
+        
+        if not spacing_valid(p, valid, min_spacing_minutes[p["station_id"]]):
+            validation_dict["SPACING_VIOLATION"] += 1
+            print(f"Spacing violation for pass {p['pass_id']} at station {p['station_id']}")
+            continue
 
-        if antenna_limits[station] <= station_counter[station]:
-            continue
-        station_counter[station] += 1
-        
-        if duration_minutes(start, end) <= min_spacing_minutes[station]:
-            continue
-        if downlink_mb > cum_downlink_budget:
+        if not downlink_budget_valid(p, valid, max_downlink_budget):
+            validation_dict["BUDGET_VIOLATION"] += 1
+            print(f"Downlink budget violation for pass {p['pass_id']} at station {p['station_id']}")
             continue
         
- 
+        if not max_passes_valid(valid, max_passes_per_day):
+            validation_dict["MAX_PASSES_LIMIT"] += 1
+            print(f"Max passes per day limit reached for pass {p['pass_id']} at station {p['station_id']}")
+            continue
         
         valid.append(p)
 
-    return valid
+    return valid, validation_dict
 
 
-def schedule_passes(passes, max_passes_per_day):
-    """
-    You must:
-    - Choose and implement ONE decision rule
-    - Ensure no overlapping passes
-    - Respect MAX_PASSES_PER_DAY
-    """
-    scheduled = []
-
-    df = pd.DataFrame(passes)
-    df["end_time"] = pd.to_datetime(df["end_time"])
-    df = df.sort_values(by="end_time")
-    df["end_time"] = df["end_time"].dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-    parsed = json.loads(df.to_json(orient="records"))
-
-    scheduled.append(parsed[0])
-    for p in parsed[1:]:
-        if len(scheduled) == max_passes_per_day:
-            break
-        if parse_time(p["start_time"]) <= parse_time(scheduled[-1]["end_time"]):
-            continue
-        scheduled.append(p)
-
-    return scheduled
-
-
-def generate_flight_plan(satellite_id, date, scheduled_passes):
+def generate_flight_plan(scheduled_passes):
     """
     Output format must match specification.
     """
     flight_plan = {
-        "satellite_id": satellite_id,
-        "date": date,
         "scheduled_passes": scheduled_passes
     }
 
@@ -130,22 +146,37 @@ def generate_flight_plan(satellite_id, date, scheduled_passes):
 
 
 def main():
-    satellite_id, date, passes = load_passes("official_passes.json")
-    antenna_limits, min_spacing_minutes, cum_downlink_budget, max_passes_per_day = load_policies(POLICY_PATH)
+    passes = load_passes("backend/src/models/input1_passes_medium.json")
+    antenna_limits, min_spacing_minutes, max_downlink_budget, max_passes_per_day = load_policies(POLICY_PATH)
 
-    valid_passes = filter_valid_passes(passes, antenna_limits, min_spacing_minutes, cum_downlink_budget, max_passes_per_day)
-    scheduled = schedule_passes(valid_passes, max_passes_per_day=max_passes_per_day)
+    validation_dict = {
+        "CAPACITY_CONFLICT":0,
+        "SPACING_VIOLATION":0,
+        "BUDGET_VIOLATION":0,
+        "MAX_PASSES_LIMIT":0
+    }
+        
+    sorted_passes = sorted(passes, key=lambda p: (-p["priority_score"], p["start_time"], p["pass_id"]))
+    valid_passes, validation_dict  = filter_valid_passes(sorted_passes, 
+                                                        antenna_limits, 
+                                                        min_spacing_minutes, 
+                                                        max_downlink_budget,
+                                                        max_passes_per_day,
+                                                        validation_dict)
+    print(valid_passes)
 
     flight_plan = generate_flight_plan(
-        satellite_id,
-        date,
-        scheduled
+        valid_passes
     )
 
     with open("flight_plan.json", "w") as f:
         json.dump(flight_plan, f, indent=2)
 
     print("Flight plan generated.")
+    print(f"MAX_PASSES_LIMIT: {validation_dict['MAX_PASSES_LIMIT']}")
+    print(f"CAPACITY_CONFLICT: {validation_dict['CAPACITY_CONFLICT']}")
+    print(f"SPACING_VIOLATION: {validation_dict['SPACING_VIOLATION']}")
+    print(f"BUDGET_VIOLATION: {validation_dict['BUDGET_VIOLATION']}")
 
 
 if __name__ == "__main__":
