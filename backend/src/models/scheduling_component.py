@@ -21,7 +21,7 @@ The order influences the scheduling outcome.
 
 import json
 from datetime import datetime
-import pandas as pd
+import uuid
 
 POLICY_PATH = "backend/src/models/input1_policy_medium.json"
 
@@ -104,42 +104,50 @@ def filter_valid_passes(passes,
     the first violated constraint determines the rejection reason. Do not reorder constraints.
     """
     valid = []
-
+    rejected = []
     
 
     
     for p in passes:
         if not capacity_valid(p, valid, antenna_limits[p["station_id"]]):
             validation_dict["CAPACITY_CONFLICT"] += 1
-            print(f"Capacity conflict for pass {p['pass_id']} at station {p['station_id']}")
+            rejection = {"pass": p, "reason": "CAPACITY_CONFLICT"}
+            rejected.append(rejection)
+
             continue
         
         if not spacing_valid(p, valid, min_spacing_minutes[p["station_id"]]):
             validation_dict["SPACING_VIOLATION"] += 1
-            print(f"Spacing violation for pass {p['pass_id']} at station {p['station_id']}")
+            rejection = {"pass": p, "reason": "SPACING_VIOLATION"}
+            rejected.append(rejection)
             continue
 
         if not downlink_budget_valid(p, valid, max_downlink_budget):
             validation_dict["BUDGET_VIOLATION"] += 1
-            print(f"Downlink budget violation for pass {p['pass_id']} at station {p['station_id']}")
+            rejection = {"pass": p, "reason": "BUDGET_VIOLATION"}
+            rejected.append(rejection)
             continue
         
         if not max_passes_valid(valid, max_passes_per_day):
             validation_dict["MAX_PASSES_LIMIT"] += 1
-            print(f"Max passes per day limit reached for pass {p['pass_id']} at station {p['station_id']}")
+            rejection = {"pass": p, "reason": "MAX_PASSES_LIMIT"}
+            rejected.append(rejection)
             continue
         
         valid.append(p)
 
-    return valid, validation_dict
+    return valid, validation_dict,rejected
 
 
-def generate_flight_plan(scheduled_passes):
+def generate_flight_plan(scheduled_passes, rejected_passes, generation_time: datetime):
     """
     Output format must match specification.
     """
     flight_plan = {
-        "scheduled_passes": scheduled_passes
+        "flightplan_id": str(uuid.uuid4()),
+        "generation_time": generation_time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "scheduled_passes": scheduled_passes,
+        "rejected_passes": rejected_passes
     }
 
     return flight_plan
@@ -157,19 +165,20 @@ def main():
     }
         
     sorted_passes = sorted(passes, key=lambda p: (-p["priority_score"], p["start_time"], p["pass_id"]))
-    valid_passes, validation_dict  = filter_valid_passes(sorted_passes, 
-                                                        antenna_limits, 
-                                                        min_spacing_minutes, 
-                                                        max_downlink_budget,
-                                                        max_passes_per_day,
-                                                        validation_dict)
-    print(valid_passes)
+    valid_passes, validation_dict, rejected_passes  = filter_valid_passes(  sorted_passes, 
+                                                                            antenna_limits, 
+                                                                            min_spacing_minutes, 
+                                                                            max_downlink_budget,
+                                                                            max_passes_per_day,
+                                                                            validation_dict)
 
     flight_plan = generate_flight_plan(
-        valid_passes
+        valid_passes,
+        rejected_passes,
+        datetime.now()
     )
 
-    with open("flight_plan.json", "w") as f:
+    with open("backend/src/models/flight_plan.json", "w") as f:
         json.dump(flight_plan, f, indent=2)
 
     print("Flight plan generated.")
