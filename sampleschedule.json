@@ -1,0 +1,20 @@
+{
+  "schedule_id": "SCH-2026-03-17",
+  "satellite_id": "Sentinel-1A",
+  "ground_station_id": "AARHUS-GS",
+  "generated_at": "2026-03-17T00:00:00Z",
+  "selected_passes": [
+    {
+      "pass_id": "Ssen1A-2026-03-17-001",
+      "start_time": "2026-03-17T10:21:00Z",
+      "end_time": "2026-03-17T10:33:00Z",
+      "max_elevation_deg": 42.5
+    },
+    {
+      "pass_id": "Sen1A-2026-03-17-002",
+      "start_time": "2026-03-17T21:05:00Z",
+      "end_time": "2026-03-17T21:17:00Z",
+      "max_elevation_deg": 38.2
+    }
+  ]
+}
