@@ -15,7 +15,7 @@ API_URL = "http://127.0.0.1:8000"
 
 class Earth:
 
-    def give_data():
+    def give_data(self):
         width, height = 256, 256
         data = np.random.randint(0, 256, (width, height), dtype=np.uint8)
         img = Image.fromarray(data)
@@ -23,8 +23,7 @@ class Earth:
         # img.show()
         return img
         
-    # TODO: something something call
-    def generate_metadata(pass_id):
+    def generate_metadata(self,pass_id):
 
         time = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
         params = EOWriteRequest(

@@ -91,6 +91,7 @@ class Database:
                         (identifier,),
                     )
 
+
                 case "rejected_passes":
                     if not identifier:
                         return self.get_flightplan_ids()
@@ -102,6 +103,7 @@ class Database:
                         """,
                         (identifier,),
                     )
+
                 case "passes":
                     if not identifier:
                         return self.get_pass_ids()
@@ -113,7 +115,6 @@ class Database:
                         """,
                         (identifier,),
                     )
-
             return data.fetchall()
         
     def write(self, table: Literal["Passes", "FlightPlan", "eo_outputs"], data: List[dict[str, Any]]):
@@ -242,3 +243,9 @@ class Database:
 if __name__ == "__main__":
     db = Database()
     print("What was read: " + str(db.read("scheduled_passes", "1ddfb7e7-34ab-4158-9454-ee21bb8d93b5")))
+
+def __enter__(self):
+    return self
+
+def __exit__(self, exc_type, exc_val, exc_tb):
+    pass
