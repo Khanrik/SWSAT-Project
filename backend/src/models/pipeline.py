@@ -33,8 +33,9 @@ class EOPipeline:
         for i in range(len(passes)):
             image_data = Earth.give_data()
             image_data = image_data.convert("L")  # or "RGB"
-            Earth.generate_metadata(passes[i])
             image_data.save(f"incoming/EO-Sen1A_image_{i}.png")
+            Earth.generate_metadata(passes[i])
+            
 
     def ingest_products(self, images):
         for image in images:
