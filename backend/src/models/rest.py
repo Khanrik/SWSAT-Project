@@ -1,6 +1,7 @@
 from typing import Any
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 try:
@@ -103,3 +104,8 @@ def get_pass_ids(pass_id: str):
     """Endpoint to read all pass IDs."""
     with Database() as db:
         return db.read("passes")
+    
+@app.get("/")
+def read_root():
+    """Redirects to the API documentation."""
+    return RedirectResponse(url="/docs", status_code=307)

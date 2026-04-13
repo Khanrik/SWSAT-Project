@@ -91,6 +91,7 @@ class Database:
                         (identifier,),
                     )
 
+
                 case "rejected_passes":
                     if not identifier:
                         return self.get_flightplan_ids()
@@ -102,6 +103,7 @@ class Database:
                         """,
                         (identifier,),
                     )
+
                 case "passes":
                     if not identifier:
                         return self.get_pass_ids()
@@ -113,8 +115,12 @@ class Database:
                         """,
                         (identifier,),
                     )
+            rows = data.fetchall()
 
-            return data.fetchall()
+            # this flattens the list so it isnt a nested list
+            if endpoint in ("scheduled_passes", "rejected_passes"):
+                return [row[0] for row in rows]
+            return rows
         
     def write(self, table: Literal["Passes", "FlightPlan", "eo_outputs"], data: List[dict[str, Any]]):
         with sqlite3.connect(DB_PATH) as db:
@@ -239,6 +245,12 @@ class Database:
         print(f"Populated database: {DB_PATH}")
         print(f"Inserted {len(pass_rows)} passes and 1 flight plan.")
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+    
 if __name__ == "__main__":
     db = Database()
     print("What was read: " + str(db.read("scheduled_passes", "1ddfb7e7-34ab-4158-9454-ee21bb8d93b5")))

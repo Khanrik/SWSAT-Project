@@ -38,9 +38,7 @@ class Earth:
         # img.show()
         return img
         
-    # TODO: something something call
     def generate_metadata(pass_id):
-
         time = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
         params = EOWriteRequest(
             eo_product_id = "SCH-" + time,

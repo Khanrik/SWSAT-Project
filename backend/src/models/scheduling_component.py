@@ -165,6 +165,7 @@ def main():
     }
         
     sorted_passes = sorted(passes, key=lambda p: (-p["priority_score"], p["start_time"], p["pass_id"]))
+    
     valid_passes, validation_dict, rejected_passes  = filter_valid_passes(  sorted_passes, 
                                                                             antenna_limits, 
                                                                             min_spacing_minutes, 
