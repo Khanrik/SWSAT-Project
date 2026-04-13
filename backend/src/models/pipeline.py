@@ -15,6 +15,7 @@ class EOPipeline:
         os.makedirs("incoming", exist_ok=True)
         for i in range(10):
             image_data = Earth.give_data()
+            image_data = image_data.convert("L")  # or "RGB"
             image_data.save(f"incoming/EO-Sen1A_image_{i}.png")
 
     def ingest_products(self, images):
