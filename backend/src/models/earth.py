@@ -19,8 +19,8 @@ API_URL = "http://127.0.0.1:8000"
 
 class Earth:
 
-    def give_data():
-        funny = True
+    def give_data(funny = True):
+        
 
         if funny:
             data = fun()
@@ -38,26 +38,38 @@ class Earth:
         # img.show()
         return img
         
-    def generate_metadata(pass_id):
-        time = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+    def generate_metadata(pass_id, processing = "GENERATED", product_id = None, image_path = "idk"):
+        time = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S.%f")
+        product_id = product_id or "SCH-" + time
+        
+        Locations = ["Aarhus Harbor","Aarhus University","Den Permanente","Marselisborg Harbor","Hørret","Ajstrup Strand","Egå","Aarhus Center"]
+        rand = random.randint(0,len(Locations)-1)
+        location = Locations[rand]
+
         params = EOWriteRequest(
-            eo_product_id = "SCH-" + time,
+            eo_product_id = product_id,
             flightplan_id = "EO_IMAGE",
             pass_id = pass_id,
             satellite_id = "Sentinel-1A",
-            area_name = "Aarhus, Denmark",
+            area_name = location,
             generated_at = time,
-            image_path = "idk",
+            image_path = image_path,
             image_width = 256,
             image_height = 256,
-            processing_state = "GENERATED"
+            processing_state = processing
         )
         
-        requests.post(f"{API_URL}/eo_outputs", json=params.model_dump(), timeout=30)
+        requests.post(f"{API_URL}/eo_products", json=params.model_dump(), timeout=30)
+
+        return product_id
 
 def gradient(ix, iy):
-    random.seed(ix * 1836311903 ^ iy * 2971215073)
-    angle = random.random() * 2 * math.pi
+    # fast integer hash
+    h = (ix * 1836311903) ^ (iy * 2971215073)
+    h = (h << 13) ^ h
+    h = (h * (h * h * 15731 + 789221) + 1376312589) & 0xffffffff
+
+    angle = (h / 0xffffffff) * 2 * math.pi
     return math.cos(angle), math.sin(angle)
 
 def lerp(a, b, x):
@@ -98,38 +110,44 @@ def perlin(x, y, grid_size=8):
 
 
 def fun():
-    min = 0
-    max = 25
-    count = 150
+    
+    size = 25
+    resolution = 250
 
     octaves = 5
 
     seed = np.random.rand(2,1)
 
-    x = np.linspace(min,max,count)
+    x = np.linspace(0,size,resolution)
     y = x
 
-    grid = np.zeros((count, count))
-    grid1 = np.zeros((count, count))
-    for i in range(count):
-        for j in range(count):
+    grid = np.zeros((resolution, resolution))
+    sx = float(seed[0] * 100)
+    sy = float(seed[1] * 100)
 
-            mountain = perlin((+x[i])* 0.25, ((seed[1]*100)+y[j])*0.25) 
+    x_scaled = x * 0.25
+    y_scaled = y * 0.25
+
+    for i in range(resolution):
+        for j in range(resolution):
+
+            x_val = sx+x[i]
+            y_val = sy+y[j]
+            mountain = perlin((sx+x_scaled[i]), (sy+y_scaled[j])) 
             for octave in range(1,octaves):
                 eps = 1e-5
 
-                noise = perlin(((seed[0]*100)+x[i]) * octave, ((seed[1]*100)+y[j]) * octave)
-                dx = perlin((((seed[0]*100)+x[i]) + eps) * octave, ((seed[1]*100)+y[j]) * octave) - noise
-                dy = perlin(((seed[0]*100)+x[i]) * octave, (((seed[1]*100)+y[j]) + eps) * octave) - noise
+                noise = perlin(x_val * octave, y_val * octave)
+                dx = perlin((x_val + eps) * octave, y_val * octave) - noise
+                dy = perlin(x_val * octave, (y_val + eps) * octave) - noise
 
                 gradient0 = dx / eps
                 gradient1 = dy / eps
 
                 mag = np.abs(np.sqrt(gradient0**2 + gradient1**2))
 
-                if(octave < 3):
-                    if(noise > mountain):
-                        noise = mountain
+                if(octave < 3 and noise > mountain):
+                    noise = mountain
 
                 grid[i,j] += noise * 1/octave * (np.exp(-mag*2) * 1/octave)
     return grid
@@ -138,5 +156,4 @@ def fun():
 
 
 if __name__ == "__main__":
-    earth = Earth()
-    earth.give_data()
+    Earth.give_data(True)

@@ -74,7 +74,7 @@ class Database:
             )
             return [row[0] for row in data.fetchall()]
 
-    def read(self, endpoint: Literal["scheduled_passes", "rejected_passes", "passes"], identifier: str | None = None):
+    def read(self, endpoint: Literal["scheduled_passes", "rejected_passes", "passes", "eo_products"], identifier: str | None = None):
         with sqlite3.connect(DB_PATH) as db:
             cursor = db.cursor()
 
@@ -91,7 +91,6 @@ class Database:
                         (identifier,),
                     )
 
-
                 case "rejected_passes":
                     if not identifier:
                         return self.get_flightplan_ids()
@@ -103,7 +102,7 @@ class Database:
                         """,
                         (identifier,),
                     )
-
+                
                 case "passes":
                     if not identifier:
                         return self.get_pass_ids()
@@ -115,6 +114,31 @@ class Database:
                         """,
                         (identifier,),
                     )
+
+                case "eo_products":
+                    if not identifier:
+                        return []
+                    
+                    match identifier:
+                        case "eo_product_id":
+                            data = cursor.execute(
+                            """
+                            SELECT *
+                            FROM eo_products
+                            WHERE eo_product_id = ?
+                            """,
+                            (identifier,),
+                            )
+                        case "satellite_id":
+                            data = cursor.execute(
+                            """
+                            SELECT *
+                            FROM eo_products
+                            WHERE satellite_id = ?
+                            """,
+                            (identifier,),
+                            )
+
             rows = data.fetchall()
 
             # this flattens the list so it isnt a nested list
@@ -122,7 +146,7 @@ class Database:
                 return [row[0] for row in rows]
             return rows
         
-    def write(self, table: Literal["Passes", "FlightPlan", "eo_outputs"], data: List[dict[str, Any]]):
+    def write(self, table: Literal["Passes", "FlightPlan", "eo_products"], data: List[dict[str, Any]]):
         with sqlite3.connect(DB_PATH) as db:
             cursor = db.cursor()
             match table:
@@ -165,7 +189,7 @@ class Database:
                         formatted_data,
                     )
 
-                case "eo_outputs":
+                case "eo_products":
                     formatted_data = [
                         (
                             eo_data["eo_product_id"],
@@ -250,6 +274,11 @@ class Database:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
+
+    def delete_all(self, table: Literal["Passes", "FlightPlan", "eo_products"]):
+        with sqlite3.connect(DB_PATH) as db:
+            cursor = db.cursor()
+            cursor.execute(f"DELETE FROM {table}")
     
 if __name__ == "__main__":
     db = Database()

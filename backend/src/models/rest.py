@@ -65,11 +65,11 @@ def create_flight_plan(payload: FlightPlanWriteRequest):
         "flightplan_id": payload.flightplan_id,
     }
 
-@app.post("/eo_outputs")
+@app.post("/eo_products")
 def create_eo(payload: EOWriteRequest):
     """Create or replace one EO entry."""
     with Database() as db:
-        db.write("eo_outputs", [payload.model_dump()])
+        db.write("eo_products", [payload.model_dump()])
     return {
         "message": "EO written successfully",
         "eo_product_id": payload.eo_product_id,
@@ -105,7 +105,20 @@ def get_pass_ids(pass_id: str):
     with Database() as db:
         return db.read("passes")
     
+@app.get("/eo_products/{eo_product_id}")
+def read_eo(eo_product_id: str):
+    """Endpoint to read a specific EO entry."""
+    with Database() as db:
+        return db.read("eo_products", eo_product_id)
+
 @app.get("/")
 def read_root():
     """Redirects to the API documentation."""
     return RedirectResponse(url="/docs", status_code=307)
+
+@app.delete("/eo_products/delete_all")
+def delete_all_eo():
+    """Endpoint to delete all EO entries."""
+    with Database() as db:
+        db.delete_all("eo_products")
+    return {"message": "All EO entries deleted successfully"}
