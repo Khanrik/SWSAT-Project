@@ -131,8 +131,8 @@ def fun():
     y = x
 
     grid = np.zeros((resolution, resolution))
-    sx = float(seed[0] * 100)
-    sy = float(seed[1] * 100)
+    sx = float(seed[0, 0] * 100)
+    sy = float(seed[1, 0] * 100)
 
     x_scaled = x * 0.25
     y_scaled = y * 0.25
