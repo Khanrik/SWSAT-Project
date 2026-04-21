@@ -39,7 +39,7 @@ class Earth:
         return img
         
     def generate_metadata(pass_id, processing = "GENERATED", product_id = None, image_path = "idk"):
-        time = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S.%f")
+        time = datetime.datetime.now().strftime("%m-%d-%Y_%H-%M-%S.%f")
         product_id = product_id or "SCH-" + time
         
         Locations = ["Aarhus Harbor","Aarhus University","Den Permanente","Marselisborg Harbor","Hørret","Ajstrup Strand","Egå","Aarhus Center"]
@@ -61,7 +61,16 @@ class Earth:
         
         requests.post(f"{API_URL}/eo_products", json=params.model_dump(), timeout=30)
 
-        return product_id
+        return params
+    
+    def update_metadata(metadata: EOWriteRequest, new_state: str = None, new_image_path: str = None):
+        """Update the metadata of an EO product in place"""
+        if new_state is not None:
+            metadata.processing_state = new_state
+        if new_image_path is not None:
+            metadata.image_path = new_image_path
+        requests.post(f"{API_URL}/eo_products", json=metadata.model_dump(), timeout=30)
+
 
 def gradient(ix, iy):
     # fast integer hash
