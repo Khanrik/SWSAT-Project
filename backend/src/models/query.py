@@ -1,7 +1,7 @@
 from pathlib import Path
 import json
 
-CATALOG_DIR = Path("catalog")
+CATALOG_DIR = Path("backend/framework/data/catalog")
 
 def query_by_area(area_name: str):
     """Query archived EO products by area name."""

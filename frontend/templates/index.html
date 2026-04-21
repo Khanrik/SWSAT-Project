@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>EO Dashboard</title>
+  <style>
+    
+ body {background-color: lightgrey;
+
+}
+
+  </style>
+</head>
+
+<body>
+
+<h1>EO Dashboard</h1>
+
+<!-- ========================= -->
+<!-- MENU -->
+<!-- ========================= -->
+<a href="/">Dashboard</a>
+<a href="/api/products" target="_blank">View API</a>
+<a href="https://apps.sentinel-hub.com/eo-browser/" target="_blank">
+  Open EO Browser
+</a>
+
+<hr>
+
+<!-- ========================= -->
+<!-- FILTERS -->
+<!-- ========================= -->
+<form method="get">
+
+  Area:
+  <input type="text" name="area_name" value="{{ area_name }}">
+
+  Satellite:
+  <input type="text" name="satellite_id" value="{{ satellite_id }}">
+
+  Date:
+  <input type="text" name="date" value="{{ date }}">
+
+  <button type="submit" href="/filter">Apply Filters</button>
+
+</form>
+
+<hr>
+
+<!-- ========================= -->
+<!-- PRODUCT LIST -->
+<!-- ========================= -->
+<h2>EO Product List</h2>
+
+<script>
+  function selectProduct(productId) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("selected_id", productId);
+    window.location.href = url.toString();
+  }
+</script>
+
+{% for product in products %}
+  <div onclick='selectProduct({{ product.eo_product_id | tojson }})'>
+    {{ product.eo_product_id }} |
+    {{ product.area_name }} |
+    {{ product.timestamp }}
+  </div>
+{% endfor %}
+
+<hr>
+
+<!-- ========================= -->
+<!-- SELECTED PRODUCT -->
+<!-- ========================= -->
+<h2>Selected Product</h2>
+
+{% if selected_product %}
+
+  <p>ID: {{ selected_product.eo_product_id }}</p>
+  <p>Satellite: {{ selected_product.satellite_id }}</p>
+  <p>Area: {{ selected_product.area_name }}</p>
+  <p>Timestamp: {{ selected_product.timestamp }}</p>
+
+{% else %}
+
+  <p>No product selected</p>
+
+{% endif %}
+
+<hr>
+
+<!-- ========================= -->
+<!-- IMAGE PREVIEW -->
+<!-- ========================= -->
+<h2>Image Preview</h2>
+
+{% if selected_product %}
+  <img src="/image/{{ selected_product.eo_product_id }}" width="400">
+{% else %}
+  <p>No preview available</p>
+{% endif %}
+
+</body>
+</html>
