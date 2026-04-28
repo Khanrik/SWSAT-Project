@@ -36,6 +36,7 @@ class EOWriteRequest(BaseModel):
     image_width: int
     image_height: int
     processing_state: str
+    enhanced_image_path: str
 
 #endpoints
 @app.post("/schedule")

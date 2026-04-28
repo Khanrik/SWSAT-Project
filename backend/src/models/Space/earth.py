@@ -38,7 +38,7 @@ class Earth:
         # img.show()
         return img
         
-    def generate_metadata(pass_id, processing = "GENERATED", product_id = None, image_path = "idk"):
+    def generate_metadata(pass_id, processing = "GENERATED", product_id = None, image_path = "idk", enhanced_image = ""):
         time = datetime.datetime.now().strftime("%m-%d-%Y_%H-%M-%S.%f")
         product_id = product_id or "SCH-" + time
         
@@ -56,19 +56,19 @@ class Earth:
             image_path = str(image_path),
             image_width = 256,
             image_height = 256,
-            processing_state = processing
+            processing_state = processing,
+            enhanced_image_path = str(enhanced_image)
         )
         
         requests.post(f"{API_URL}/eo_products", json=params.model_dump(), timeout=30)
 
         return params
     
-    def update_metadata(metadata: EOWriteRequest, new_state: str = None, new_image_path: str = None):
+    def update_metadata(metadata: EOWriteRequest, updated_values: dict):
         """Update the metadata of an EO product in place"""
-        if new_state is not None:
-            metadata.processing_state = new_state
-        if new_image_path is not None:
-            metadata.image_path = str(new_image_path)
+        for key, value in updated_values.items():
+            if hasattr(metadata, key):
+                setattr(metadata, key, value)
         requests.post(f"{API_URL}/eo_products", json=metadata.model_dump(), timeout=30)
 
 

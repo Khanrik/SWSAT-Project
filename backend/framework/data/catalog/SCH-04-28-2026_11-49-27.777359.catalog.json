@@ -1,0 +1,8 @@
+{
+    "eo_product_id": "SCH-04-28-2026_11-49-27.777359",
+    "satellite_id": "Sentinel-1A",
+    "area_name": "Den Permanente",
+    "timestamp": "04-28-2026_11-49-27.777359",
+    "archive_path": "backend\\framework\\data\\archive\\Sentinel-1A\\Den Permanente\\04-28-2026_11-49-27.777359\\EO-Sen1A_image_M28.png",
+    "enhanced_image_path": "backend\\framework\\data\\enhanced\\enhanced_EO-Sen1A_image_M28.png"
+}

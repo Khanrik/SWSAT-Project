@@ -47,7 +47,8 @@ class Database:
                     image_path TEXT NOT NULL,
                     image_width INTEGER NOT NULL,
                     image_height INTEGER NOT NULL,
-                    processing_state TEXT NOT NULL)
+                    processing_state TEXT NOT NULL,
+                    enhanced_image_path TEXT NOT NULL)
                 """
             )
 
@@ -201,14 +202,15 @@ class Database:
                             eo_data["image_width"],
                             eo_data["image_height"],
                             eo_data["processing_state"],
+                            eo_data["enhanced_image_path"]
                         )
                         for eo_data in data
                     ]
                     cursor.executemany(
                         """
                         INSERT OR REPLACE INTO eo_products
-                        (eo_product_id, flightplan_id, pass_id, satellite_id, area_name, generated_at, image_path, image_width, image_height, processing_state)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (eo_product_id, flightplan_id, pass_id, satellite_id, area_name, generated_at, image_path, image_width, image_height, processing_state, enhanced_image_path)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         formatted_data,
                     )
@@ -277,7 +279,7 @@ class Database:
     def delete_all(self, table: Literal["Passes", "FlightPlan", "eo_products"]):
         with sqlite3.connect(DB_PATH) as db:
             cursor = db.cursor()
-            cursor.execute(f"DELETE FROM {table}")
+            cursor.execute(f"DROP TABLE IF EXISTS {table}")
     
 if __name__ == "__main__":
     db = Database()

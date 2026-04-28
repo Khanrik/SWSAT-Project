@@ -4,7 +4,7 @@ import sys
 from random import Random
 import time
 import requests
-import PIL
+from PIL import Image, ImageEnhance
 import json
 import ast
 from pathlib import Path
@@ -52,6 +52,7 @@ class EOPipeline:
         for pass_id in passes:
             image_data = Earth.give_data(True)
             image_data = image_data.convert("L")  # or "RGB"
+
             image_path = incoming_dir / f"EO-Sen1A_image_{pass_id}.png"
             print(f"Generated image for pass {pass_id} at {image_path}")
             image_data.save(image_path)
@@ -65,7 +66,7 @@ class EOPipeline:
         for image in images:
             self.images_in_processing.append(image)
         for i in range(len(passes)):
-            Earth.update_metadata(mapping[passes[i]], new_state="QUEUED")
+            Earth.update_metadata(mapping[passes[i]], updated_values={"processing_state": "QUEUED"})
 
 
     def process_products(self, mapping):
@@ -75,13 +76,13 @@ class EOPipeline:
         while len(self.images_in_processing) > 0:
             image = self.images_in_processing.pop(0)
             pass_id = image.split("_")[-1].split(".")[0]
-            Earth.update_metadata(mapping[pass_id], new_state="PROCESSING")
+            Earth.update_metadata(mapping[pass_id], updated_values={"processing_state": "PROCESSING"})
             print(f"Queue length {len(self.images_in_processing)}")
             print(f"Processing {image}...")
             # time.sleep(Random().randint(1, 5))
             new_path = shutil.move(DATA_DIR / f"incoming/{image}", processed_dir / image)
 
-            Earth.update_metadata(mapping[pass_id], new_state="COMPLETED", new_image_path=new_path)
+            Earth.update_metadata(mapping[pass_id], updated_values={"processing_state": "PROCESSED", "image_path": str(new_path)})
             print(f"Finished processing {image}!")
 
     def archive_products(self, images: list[str], mapping: dict[str, EOWriteRequest]):
@@ -96,20 +97,30 @@ class EOPipeline:
             image_path = archive_dir / metadata.satellite_id / metadata.area_name / metadata.generated_at / image
             image_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(DATA_DIR / f"processed/{image}", image_path)
-            Earth.update_metadata(metadata, new_state="ARCHIVED", new_image_path=str(image_path))
+
+            enhanced_image = self.enhance_product(image_path)
+            enhanced_image_path = image_path.parents[4] / "enhanced" / f"enhanced_{image_path.name}"
+            enhanced_image_path.parent.mkdir(parents=True, exist_ok=True)
+            enhanced_image.save(enhanced_image_path)
+
+            Earth.update_metadata(metadata, updated_values={"processing_state": "ARCHIVED", "image_path": str(image_path), "enhanced_image_path": str(enhanced_image_path)})
             
             catalog_format = {
                 "eo_product_id": metadata.eo_product_id,
                 "satellite_id": metadata.satellite_id,
                 "area_name": metadata.area_name,
                 "timestamp": metadata.generated_at,
-                "archive_path": str(image_path)
+                "archive_path": str(image_path),
+                "enhanced_image_path": str(enhanced_image_path)
             }
             with open(catalog_dir / f"{metadata.eo_product_id}.catalog.json", "w") as f:
                 json.dump(catalog_format, f, indent=4)
 
-
-
+    def enhance_product(self, image_path: str):
+        with Image.open(image_path) as image:    
+            enhanced_image = ImageEnhance.Contrast(image).enhance(1.5)
+        return enhanced_image
+    
     def run(self):
         passes, mapping = self.generate_products()
         self.ingest_products(os.listdir(DATA_DIR / "incoming"), passes, mapping)

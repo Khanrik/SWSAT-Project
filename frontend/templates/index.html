@@ -60,7 +60,7 @@
 </script>
 
 {% for product in products %}
-  <div onclick='selectProduct({{ product.eo_product_id | tojson }})'>
+  <div style='cursor: pointer;' onclick='selectProduct({{ product.eo_product_id | tojson }})'>
     {{ product.eo_product_id }} |
     {{ product.area_name }} |
     {{ product.timestamp }}
@@ -92,13 +92,33 @@
 <!-- ========================= -->
 <!-- IMAGE PREVIEW -->
 <!-- ========================= -->
-<h2>Image Preview</h2>
+<table>
+  <tr>
+    <th>Satellite Image</th>
+    <th>Enhanced Image</th>
+  </tr>
+  <tr>
+    <td>
+      {% if selected_product %}
+        <img src="/image/{{ selected_product.eo_product_id }}" width="400">
+      {% else %}
+        <p>No preview available</p>
+      {% endif %}
+    </td>
+    <td>
+      {% if selected_product %}
+        <img src="/enhanced_image/{{ selected_product.eo_product_id }}" width="400">
+      {% else %}
+        <p>No preview available</p>
+      {% endif %}
+    </td>
+    
+  </tr>
 
-{% if selected_product %}
-  <img src="/image/{{ selected_product.eo_product_id }}" width="400">
-{% else %}
-  <p>No preview available</p>
-{% endif %}
+</table>
+
+
+
 
 </body>
 </html>

@@ -9,7 +9,7 @@ WORKSPACE = Path(__file__).parent.parent
 DATA_DIR = WORKSPACE / "backend/framework/data"
 CATALOG_DIR = DATA_DIR / "catalog"
 ARCHIVE_DIR = DATA_DIR / "archive"
-
+ENHANCED_DIR = DATA_DIR / "enhanced"
 
 # =========================
 # TASK 1: LOAD CATALOG from Lab 9
@@ -19,12 +19,11 @@ def load_catalog():
     Read all catalog JSON files and return a list of EO products.
     """
     products = []
-
+    
     for element in [CATALOG_DIR / f for f in os.listdir(CATALOG_DIR)]:
         with open(element,"r") as file:
             products.append(json.load(file))
             
-
     return products
 
 
@@ -100,6 +99,19 @@ def serve_image(eo_product_id):
     for product in products:
         if(product["eo_product_id"] == eo_product_id):
             path = WORKSPACE / product["archive_path"]
+            if(os.path.exists(path)):
+                
+                return send_file(path)
+    abort(404)
+
+@app.route("/enhanced_image/<eo_product_id>") #API endpoint mapping
+def serve_enhanced_image(eo_product_id):
+
+    products = load_catalog()
+
+    for product in products:
+        if(product["eo_product_id"] == eo_product_id):
+            path = WORKSPACE / product["enhanced_image_path"]
             if(os.path.exists(path)):
                 
                 return send_file(path)
