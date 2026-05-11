@@ -26,23 +26,26 @@ class FlightPlanWriteRequest(BaseModel):
     Rejected_passes: list[dict[str, Any]]
 
 class EOWriteRequest(BaseModel):
-    eo_product_id: str = None
-    flightplan_id: str = None
-    pass_id: str = None
-    satellite_id: str = None
-    area_name: str = None
-    generated_at: str = None
-    image_path: str = None
+    eo_product_id: str = ""
+    flightplan_id: str = ""
+    pass_id: str = ""
+    satellite_id: str = ""
+    area_name: str = ""
+    generated_at: str = ""
+    image_path: str = ""
     image_width: int = 0
     image_height: int = 0
-    processing_state: str = None
-    quality_score: int = 0
-    brightness: int = 0
-    contrast: int = 0
+    processing_state: str = ""
+    quality_score: float = 0
+    brightness: float = 0
+    contrast: float = 0
     is_visible: bool = False
     is_anomaly: bool = False
     priority: int = 0
-    enhanced_image_path: str = None
+    enhanced_image_path: str = ""
+    labels: str = ""  # JSON string of cluster labels
+    centers: str = ""  # JSON string of cluster centers
+    meaning: str = ""
 
 #endpoints
 @app.post("/schedule")

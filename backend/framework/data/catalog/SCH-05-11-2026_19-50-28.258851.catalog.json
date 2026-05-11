@@ -1,0 +1,17 @@
+{
+    "eo_product_id": "SCH-05-11-2026_19-50-28.258851",
+    "satellite_id": "Sentinel-1A",
+    "area_name": "Aarhus Center",
+    "generated_at": "05-11-2026_19-50-28.258851",
+    "archive_path": "backend\\framework\\data\\archive\\Sentinel-1A\\Aarhus Center\\05-11-2026_19-50-28.258851\\EO-Sen1A_image_M06.png",
+    "enhanced_image_path": "backend\\framework\\data\\enhanced\\enhanced_EO-Sen1A_image_M06.png",
+    "quality_score": 0.6362811852825551,
+    "brightness": 0.5031171764705883,
+    "contrast": 0.27879672350628665,
+    "is_visible": true,
+    "is_anomaly": false,
+    "priority": 6.36281185282555,
+    "meaning": "high_quality",
+    "labels": "0",
+    "centers": "[0.48541118954248363, 0.27809173249644725]"
+}

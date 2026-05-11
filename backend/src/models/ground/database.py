@@ -48,13 +48,16 @@ class Database:
                     image_width INTEGER NOT NULL,
                     image_height INTEGER NOT NULL,
                     processing_state TEXT NOT NULL,
-                    quality_score INTEGER NOT NULL,
-                    brightness INTEGER NOT NULL,
-                    contrast INTEGER NOT NULL,
+                    quality_score REAL NOT NULL,
+                    brightness REAL NOT NULL,
+                    contrast REAL NOT NULL,
                     is_visible BOOL NOT NULL,
                     is_anomaly BOOL NOT NULL,
                     priority INTEGER NOT NULL,
-                    enhanced_image_path TEXT NOT NULL)
+                    enhanced_image_path TEXT NOT NULL,
+                    labels TEXT NOT NULL,
+                    centers TEXT NOT NULL,
+                    meaning TEXT NOT NULL)
                 """
             )
 
@@ -124,25 +127,15 @@ class Database:
                     if not identifier:
                         return []
                     
-                    match identifier:
-                        case "eo_product_id":
-                            data = cursor.execute(
-                            """
-                            SELECT *
-                            FROM eo_products
-                            WHERE eo_product_id = ?
-                            """,
-                            (identifier,),
-                            )
-                        case "satellite_id":
-                            data = cursor.execute(
-                            """
-                            SELECT *
-                            FROM eo_products
-                            WHERE satellite_id = ?
-                            """,
-                            (identifier,),
-                            )
+                    # Query by eo_product_id by default
+                    data = cursor.execute(
+                        """
+                        SELECT *
+                        FROM eo_products
+                        WHERE eo_product_id = ?
+                        """,
+                        (identifier,),
+                    )
 
             rows = data.fetchall()
 
@@ -213,15 +206,18 @@ class Database:
                             eo_data["is_visible"],
                             eo_data["is_anomaly"],
                             eo_data["priority"],
-                            eo_data["enhanced_image_path"]
+                            eo_data["enhanced_image_path"],
+                            eo_data.get("labels", ""),
+                            eo_data.get("centers", ""),
+                            eo_data.get("meaning","")
                         )
                         for eo_data in data
                     ]
                     cursor.executemany(
                         """
                         INSERT OR REPLACE INTO eo_products
-                        (eo_product_id, flightplan_id, pass_id, satellite_id, area_name, generated_at, image_path, image_width, image_height, processing_state,quality_score,brightness,contrast,is_visible,is_anomaly,priority, enhanced_image_path)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?,? ?)
+                        (eo_product_id, flightplan_id, pass_id, satellite_id, area_name, generated_at, image_path, image_width, image_height, processing_state,quality_score,brightness,contrast,is_visible,is_anomaly,priority, enhanced_image_path, labels, centers, meaning)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?,?,?,?,?,?)
                         """,
                         formatted_data,
                     )

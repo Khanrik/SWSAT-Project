@@ -106,6 +106,7 @@ class EOPipeline:
                 "is_visible": None,
                 "is_anomaly": None,
                 "priority": None,
+                "meaning": None
             }
             catalog_product(catalog_dict)
     
@@ -114,7 +115,14 @@ class EOPipeline:
         self.ingest_products(os.listdir(DATA_DIR / "incoming"), passes, mapping)
         self.process_products(mapping)
         self.archive_products(os.listdir(DATA_DIR / "processed"), mapping)
-
+        
+        # Run processing pipeline to enhance images and update metadata
+        catalog_dir = DATA_DIR / "catalog"
+        processing_pipeline = ProcessingPipeline()
+        print("Processing and enhancing archived products...")
+        processing_pipeline.run(catalog_dir)
+        print("Processing complete. Database and catalog files updated.")
+        
         response = query_by_area(mapping[passes[0]].area_name)
         print(f"Found {len(response)} results:")
         for result in response:

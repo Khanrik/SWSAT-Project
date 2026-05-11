@@ -1,10 +1,12 @@
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance, ImageFile
 import json
 import glob
+import sklearn as sk
 from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 import sys
+import requests
 
 # Support running this file directly (python path/to/pipeline.py)
 # by making backend/src importable as the package root.
@@ -14,6 +16,9 @@ if __package__ in (None, ""):
         sys.path.insert(0, str(src_root))
 
 from models.Space.earth import Earth
+from models.ground.rest import EOWriteRequest
+
+API_URL = "http://127.0.0.1:8000"
 
 DATA_DIR = Path("backend/framework/data")
 
@@ -35,18 +40,135 @@ class ProcessingPipeline:
         results=[]
         for batch in tqdm(batches):
             results.extend(self.process_batch(batch))
+        
+        scores = []
+        for processed in results:
+            scores.append([processed["brightness"],processed["contrast"]])
+        
+        # Perform k-means clustering on quality scores
+        print(scores)
+        labels, centers = self.k_means(scores)
 
+        scores = []
+        for processed in results:
+            scores.append(processed["quality_score"])
+
+        scores = np.array(scores)
+        labels = np.array(labels)
+
+        print(scores, labels)
+
+        data = np.column_stack((scores, labels))
+
+        unique_labels = []
+        unique_scores = []
+
+        for i in range(len(data)):
+            if data[i][1] not in unique_labels:
+                unique_labels.append(data[i][1])
+                unique_scores.append(data[i][0])
+
+        unique_labels = np.array(unique_labels)
+        unique_scores = np.array(unique_scores)
+
+        print(unique_scores, unique_labels)
+
+        data = np.column_stack((unique_scores, unique_labels))
+
+        print(data)
+
+        sorted_data = data[np.argsort(data[:, 0])[::-1]]
+
+        print(sorted_data)
+
+        label_meanings = {
+            int(sorted_data[0][1]): "high_quality",
+            int(sorted_data[1][1]): "medium_quality",
+            int(sorted_data[2][1]): "low_quality"
+        }
+
+        print(label_meanings)
+
+        i = 0
+        for metadata in results:
+            metadata["labels"] = str(labels[i])
+            metadata["centers"] = json.dumps(centers[labels[i]].tolist())
+            metadata["meaning"] = label_meanings[int(labels[i])]
+            i += 1
+
+
+        # Update catalog JSON files with processed results
+        for processed_metadata in results:
+            # Update catalog JSON file
+            catalog_path = Path(metadata_dir) / f"{processed_metadata['eo_product_id']}.catalog.json"
+            with open(catalog_path, "w") as f:
+                json.dump(processed_metadata, f, indent=4)
         
+        # Sync all catalog files to database
+        self.update_database_from_catalog(metadata_dir)
         
-        Earth.update_metadata(metadata, updated_values={"processing_state": "ARCHIVED", "image_path": str(image_path)})
+        return results
+    
+    def update_database_from_catalog(self, catalog_dir: Path):
+        """Read all catalog JSON files and update only the enhanced fields in the database."""
+        from models.ground.database import Database
+        
+        catalog_files = list(Path(catalog_dir).glob("*.catalog.json"))
+        db = Database()
+        
+        for catalog_file in catalog_files:
+            with open(catalog_file, "r") as f:
+                enhanced_data = json.load(f)
+            
+            eo_product_id = enhanced_data.get("eo_product_id", "")
+            
+            # Query database for existing record
+            existing_records = db.read("eo_products", eo_product_id)
+            if not existing_records:
+                print(f"Warning: No existing record found for {eo_product_id}")
+                continue
+            
+            existing_record = existing_records[0]
+            
+            # Database column order from schema:
+            # eo_product_id, flightplan_id, pass_id, satellite_id, area_name, generated_at,
+            # image_path, image_width, image_height, processing_state, quality_score,
+            # brightness, contrast, is_visible, is_anomaly, priority, enhanced_image_path
+            
+            eo_request = EOWriteRequest(
+                eo_product_id=existing_record[0],
+                flightplan_id=existing_record[1],
+                pass_id=existing_record[2],
+                satellite_id=existing_record[3],
+                area_name=existing_record[4],
+                generated_at=existing_record[5],
+                image_path=existing_record[6],
+                image_width=existing_record[7],
+                image_height=existing_record[8],
+                processing_state=existing_record[9],
+                # Update only the enhanced fields from JSON
+                quality_score=float(enhanced_data.get("quality_score", existing_record[10])),
+                brightness=float(enhanced_data.get("brightness", existing_record[11])),
+                contrast=float(enhanced_data.get("contrast", existing_record[12])),
+                is_visible=enhanced_data.get("is_visible", bool(existing_record[13])),
+                is_anomaly=enhanced_data.get("is_anomaly", bool(existing_record[14])),
+                priority=int(enhanced_data.get("priority", existing_record[15])),
+                enhanced_image_path=enhanced_data.get("enhanced_image_path", existing_record[16] if len(existing_record) > 16 else ""),
+                labels=enhanced_data.get("labels", existing_record[17] if len(existing_record) > 17 else ""),
+                centers=enhanced_data.get("centers", existing_record[18] if len(existing_record) > 18 else ""),
+                meaning=enhanced_data.get("meaning",existing_record[19] if len(existing_record) > 19 else "")
+            )
+            
+            requests.post(f"{API_URL}/eo_products", json=eo_request.model_dump(), timeout=30)
         
         
     
-    def get_metadata(self,path):
-
+    
+    def get_metadata(self, path: Path):
         data = []
-        for filename in glob.glob(path + "/*.json"):
-            with open(filename,"r") as metadata: 
+        base = Path(path)
+        for filepath in base.glob("*.json"):
+            with open(filepath, "r") as metadata:
                 data.append(json.load(metadata))
         return data
     
@@ -71,20 +193,21 @@ class ProcessingPipeline:
                 enhanced_image = self.enhance_product(image)
                 enhanced_image.save(enhanced_image_path)
 
-                score = self.score_product(enhanced_image)
-                
+                score = self.score_product(enhanced_image) # Need 2D array for sklearn
             metadata["enhanced_image_path"] = str(enhanced_image_path)
             for key in metadata.keys():
                 if key in score.keys():
                     metadata[key] = score[key]
             processed_batch.append(metadata)
+        
+
 
         return processed_batch
 
-    def enhance_product(self, image: Image.ImageFile):
+    def enhance_product(self, image: ImageFile):
         return ImageEnhance.Contrast(image).enhance(1.5)
 
-    def score_product(self, image: Image.ImageFile):
+    def score_product(self, image: ImageFile):
         score = {
             "quality_score": 0,
             "brightness": 0,
@@ -94,13 +217,20 @@ class ProcessingPipeline:
             "priority": 0,
         }
         image_array = np.array(image)
-        score["brightness"] = image_array.mean() / 255.0
-        score["contrast"] = image_array.std() / 255.0
-        score["quality_score"] = ((0.5 - (np.abs((score["brightness"]-0.5))))*2 + score["contrast"]) / 2
-        score["is_visible"] = score["brightness"] > 0.1 or score["contrast"] > 0.1
-        score["is_anomaly"] = score["brightness"] > 0.9 or score["contrast"] > 0.9
+        score["brightness"] = float(image_array.mean() / 255.0)
+        score["contrast"] = float(image_array.std() / 255.0)
+        score["quality_score"] = float(((0.5 - (np.abs((score["brightness"]-0.5))))*2 + score["contrast"]) / 2)
+        score["is_visible"] = bool(score["brightness"] > 0.1 or score["contrast"] > 0.1)
+        score["is_anomaly"] = bool(score["brightness"] > 0.9 or score["contrast"] > 0.9)
         priority = 0
+        qs = score["quality_score"]
         if score["is_anomaly"]:
-            priority += 1
-        score["priority"] 
+            priority -= qs*10
+        else:
+            priority += qs*10
+        score["priority"] = priority
         return score
+    
+    def k_means(self,score):
+        kmeans = sk.cluster.KMeans(3).fit(score)
+        return kmeans.labels_,kmeans.cluster_centers_
