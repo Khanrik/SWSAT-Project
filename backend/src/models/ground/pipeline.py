@@ -1,10 +1,7 @@
 import os
 import shutil
 import sys
-from random import Random
-import time
 import requests
-from PIL import Image, ImageEnhance
 import json
 import ast
 from pathlib import Path
@@ -16,14 +13,15 @@ if __package__ in (None, ""):
     if str(src_root) not in sys.path:
         sys.path.insert(0, str(src_root))
 
+from models.ground.processing_pipeline import catalog_product, ProcessingPipeline
 from models.ground.rest import EOWriteRequest
 from models.query import query_by_area
 from models.Space.earth import Earth
-from models.ground import scheduling_component
 
 
 API_URL = "http://127.0.0.1:8000"
 DATA_DIR = Path("backend/framework/data")
+
 
 class EOPipeline:
     images_in_processing = []
@@ -87,9 +85,7 @@ class EOPipeline:
 
     def archive_products(self, images: list[str], mapping: dict[str, EOWriteRequest]):
         archive_dir = DATA_DIR / "archive"
-        catalog_dir = DATA_DIR / "catalog"
         archive_dir.mkdir(exist_ok=True, parents=True)
-        catalog_dir.mkdir(exist_ok=True, parents=True)
         for image in images:
             print(f"Archiving {image}...")
             pass_id = image.split("_")[-1].split(".")[0]
@@ -97,29 +93,21 @@ class EOPipeline:
             image_path = archive_dir / metadata.satellite_id / metadata.area_name / metadata.generated_at / image
             image_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(DATA_DIR / f"processed/{image}", image_path)
-
-            enhanced_image = self.enhance_product(image_path)
-            enhanced_image_path = image_path.parents[4] / "enhanced" / f"enhanced_{image_path.name}"
-            enhanced_image_path.parent.mkdir(parents=True, exist_ok=True)
-            enhanced_image.save(enhanced_image_path)
-
-            Earth.update_metadata(metadata, updated_values={"processing_state": "ARCHIVED", "image_path": str(image_path), "enhanced_image_path": str(enhanced_image_path)})
-            
-            catalog_format = {
+            catalog_dict = {
                 "eo_product_id": metadata.eo_product_id,
                 "satellite_id": metadata.satellite_id,
                 "area_name": metadata.area_name,
-                "timestamp": metadata.generated_at,
+                "generated_at": metadata.generated_at,
                 "archive_path": str(image_path),
-                "enhanced_image_path": str(enhanced_image_path)
+                "enhanced_image_path": None,
+                "quality_score": None,
+                "brightness": None,
+                "contrast": None,
+                "is_visible": None,
+                "is_anomaly": None,
+                "priority": None,
             }
-            with open(catalog_dir / f"{metadata.eo_product_id}.catalog.json", "w") as f:
-                json.dump(catalog_format, f, indent=4)
-
-    def enhance_product(self, image_path: str):
-        with Image.open(image_path) as image:    
-            enhanced_image = ImageEnhance.Contrast(image).enhance(1.5)
-        return enhanced_image
+            catalog_product(catalog_dict)
     
     def run(self):
         passes, mapping = self.generate_products()

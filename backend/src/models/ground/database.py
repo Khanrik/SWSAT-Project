@@ -48,6 +48,12 @@ class Database:
                     image_width INTEGER NOT NULL,
                     image_height INTEGER NOT NULL,
                     processing_state TEXT NOT NULL,
+                    quality_score INTEGER NOT NULL,
+                    brightness INTEGER NOT NULL,
+                    contrast INTEGER NOT NULL,
+                    is_visible BOOL NOT NULL,
+                    is_anomaly BOOL NOT NULL,
+                    priority INTEGER NOT NULL,
                     enhanced_image_path TEXT NOT NULL)
                 """
             )
@@ -77,7 +83,6 @@ class Database:
     def read(self, endpoint: Literal["scheduled_passes", "rejected_passes", "passes", "eo_products"], identifier: str | None = None):
         with sqlite3.connect(DB_PATH) as db:
             cursor = db.cursor()
-
             match endpoint:
                 case "scheduled_passes":
                     if not identifier:
@@ -202,6 +207,12 @@ class Database:
                             eo_data["image_width"],
                             eo_data["image_height"],
                             eo_data["processing_state"],
+                            eo_data["quality_score"],
+                            eo_data["brightness"],
+                            eo_data["contrast"],
+                            eo_data["is_visible"],
+                            eo_data["is_anomaly"],
+                            eo_data["priority"],
                             eo_data["enhanced_image_path"]
                         )
                         for eo_data in data
@@ -209,8 +220,8 @@ class Database:
                     cursor.executemany(
                         """
                         INSERT OR REPLACE INTO eo_products
-                        (eo_product_id, flightplan_id, pass_id, satellite_id, area_name, generated_at, image_path, image_width, image_height, processing_state, enhanced_image_path)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (eo_product_id, flightplan_id, pass_id, satellite_id, area_name, generated_at, image_path, image_width, image_height, processing_state,quality_score,brightness,contrast,is_visible,is_anomaly,priority, enhanced_image_path)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?,? ?)
                         """,
                         formatted_data,
                     )

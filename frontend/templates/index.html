@@ -63,7 +63,7 @@
   <div style='cursor: pointer;' onclick='selectProduct({{ product.eo_product_id | tojson }})'>
     {{ product.eo_product_id }} |
     {{ product.area_name }} |
-    {{ product.timestamp }}
+    {{ product.generated_at }}
   </div>
 {% endfor %}
 
@@ -79,7 +79,7 @@
   <p>ID: {{ selected_product.eo_product_id }}</p>
   <p>Satellite: {{ selected_product.satellite_id }}</p>
   <p>Area: {{ selected_product.area_name }}</p>
-  <p>Timestamp: {{ selected_product.timestamp }}</p>
+  <p>Timestamp: {{ selected_product.generated_at }}</p>
 
 {% else %}
 
