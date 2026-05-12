@@ -1,0 +1,17 @@
+{
+    "eo_product_id": "SCH-12-05-2026_19-24-32.286855",
+    "satellite_id": "Sentinel-1A",
+    "area_name": "Aarhus University",
+    "generated_at": "12-05-2026_19-24-32.286855",
+    "archive_path": "backend\\framework\\data\\archive\\Sentinel-1A\\Aarhus University\\12-05-2026_19-24-32.286855\\EO-Sen1A_image_M04.png",
+    "enhanced_image_path": "backend\\framework\\data\\enhanced\\enhanced_EO-Sen1A_image_M04.png",
+    "quality_score": 0.5567399862758611,
+    "brightness": 0.5734115764705883,
+    "contrast": 0.2603031254928986,
+    "is_visible": true,
+    "is_anomaly": false,
+    "priority": 5.567399862758611,
+    "meaning": "medium_quality",
+    "labels": "2",
+    "centers": "[0.5439017411764706, 0.2533672695173925]"
+}

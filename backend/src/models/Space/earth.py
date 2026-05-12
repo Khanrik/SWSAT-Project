@@ -39,7 +39,7 @@ class Earth:
         return img
         
     def generate_metadata(pass_id, processing = "GENERATED", product_id = None, image_path = "idk", enhanced_image = ""):
-        time = datetime.datetime.now().strftime("%m-%d-%Y_%H-%M-%S.%f")
+        time = datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S.%f")
         product_id = product_id or "SCH-" + time
         
         Locations = ["Aarhus Harbor","Aarhus University","Den Permanente","Marselisborg Harbor","Hørret","Ajstrup Strand","Egå","Aarhus Center"]

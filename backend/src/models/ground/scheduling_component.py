@@ -179,7 +179,7 @@ def main():
         datetime.now()
     )
 
-    with open("backend/src/models/flight_plan.json", "w") as f:
+    with open("backend/src/models/ground/flight_plan.json", "w") as f:
         json.dump(flight_plan, f, indent=2)
 
     print("Flight plan generated.")
@@ -187,7 +187,6 @@ def main():
     print(f"CAPACITY_CONFLICT: {validation_dict['CAPACITY_CONFLICT']}")
     print(f"SPACING_VIOLATION: {validation_dict['SPACING_VIOLATION']}")
     print(f"BUDGET_VIOLATION: {validation_dict['BUDGET_VIOLATION']}")
-
-
+    
 if __name__ == "__main__":
     main()

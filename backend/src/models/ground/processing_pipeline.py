@@ -7,6 +7,7 @@ import numpy as np
 from tqdm import tqdm
 import sys
 import requests
+import matplotlib.pyplot as plt
 
 # Support running this file directly (python path/to/pipeline.py)
 # by making backend/src importable as the package root.
@@ -42,21 +43,19 @@ class ProcessingPipeline:
             results.extend(self.process_batch(batch))
         
         scores = []
+
         for processed in results:
             scores.append([processed["brightness"],processed["contrast"]])
         
         # Perform k-means clustering on quality scores
-        print(scores)
         labels, centers = self.k_means(scores)
-
+        values = scores
         scores = []
         for processed in results:
             scores.append(processed["quality_score"])
 
         scores = np.array(scores)
         labels = np.array(labels)
-
-        print(scores, labels)
 
         data = np.column_stack((scores, labels))
 
@@ -71,15 +70,9 @@ class ProcessingPipeline:
         unique_labels = np.array(unique_labels)
         unique_scores = np.array(unique_scores)
 
-        print(unique_scores, unique_labels)
-
         data = np.column_stack((unique_scores, unique_labels))
 
-        print(data)
-
         sorted_data = data[np.argsort(data[:, 0])[::-1]]
-
-        print(sorted_data)
 
         label_meanings = {
             int(sorted_data[0][1]): "high_quality",
@@ -87,7 +80,72 @@ class ProcessingPipeline:
             int(sorted_data[2][1]): "low_quality"
         }
 
-        print(label_meanings)
+        #plot the kmeans with the label driving the color and in 2d of brightness and contrast
+        _, ax = plt.subplots()
+
+        values = np.array(values)
+        labels = np.array(labels)
+        centers = np.array(centers)
+
+        for cluster_id in np.unique(labels):
+
+            mask = labels == cluster_id
+
+            scatter = ax.scatter(
+                values[mask, 0],   # brightness
+                values[mask, 1],   # contrast
+                label=label_meanings[cluster_id]
+            )
+
+            color = scatter.get_facecolor()[0]
+        
+            ax.scatter(
+            centers[cluster_id, 0],
+            centers[cluster_id, 1],
+            color=color,
+            marker='x',
+            s=200,
+            linewidths=2
+            )
+
+        ax.set_xlabel("Brightness")
+        ax.set_ylabel("Contrast")
+        ax.set_title("K-Means Clustering of Image Quality")
+        ax.grid()
+        ax.legend()
+
+        plt.show()
+
+        resolution = 255
+        grid = np.zeros((resolution, resolution))
+
+        for i in range(resolution):
+            for j in range(resolution):
+
+                bounded_brightness = i / resolution
+                bounded_contrast = j / resolution
+
+                ranged_brightness = 0.5 - abs(bounded_brightness - 0.5) * 2
+
+                grid[i, j] = ((ranged_brightness + bounded_contrast) / 2)
+
+        plt.imshow(
+            grid,
+            cmap="gray",
+            interpolation="nearest",
+            origin="lower"   # flips the y-axis
+        )
+        ticks = np.linspace(0, 255, 6)
+        plt.yticks(ticks)
+        plt.xticks(ticks)
+
+        plt.xlabel("Contrast")
+        plt.ylabel("Brightness")
+
+        plt.colorbar(label="Pixel Value")
+
+        plt.show()
+
 
         i = 0
         for metadata in results:
@@ -106,8 +164,7 @@ class ProcessingPipeline:
         
         # Sync all catalog files to database
         self.update_database_from_catalog(metadata_dir)
-        
-        return results
+
     
     def update_database_from_catalog(self, catalog_dir: Path):
         """Read all catalog JSON files and update only the enhanced fields in the database."""
@@ -219,7 +276,7 @@ class ProcessingPipeline:
         image_array = np.array(image)
         score["brightness"] = float(image_array.mean() / 255.0)
         score["contrast"] = float(image_array.std() / 255.0)
-        score["quality_score"] = float(((0.5 - (np.abs((score["brightness"]-0.5))))*2 + score["contrast"]) / 2)
+        score["quality_score"] = float(((0.5 - (np.abs(score["brightness"]-0.5)))*2 + score["contrast"]) / 2)
         score["is_visible"] = bool(score["brightness"] > 0.1 or score["contrast"] > 0.1)
         score["is_anomaly"] = bool(score["brightness"] > 0.9 or score["contrast"] > 0.9)
         priority = 0

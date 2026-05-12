@@ -34,11 +34,11 @@ def apply_filters(products, area_name="", satellite_id="", date=""):
     
     filtered = []
     for element in products:
-        if area_name != "" and element["area_name"] != area_name :
+        if area_name != "" and area_name.lower() not in str(element["area_name"]).lower():
             continue
-        if satellite_id != "" and element["satellite_id"] != satellite_id:
+        if satellite_id != "" and satellite_id.lower() not in str(element["satellite_id"]).lower():
             continue
-        if date != "" and element["timestamp"] != date:
+        if date != "" and date not in element["generated_at"]:
             continue
         
         filtered.append(element)

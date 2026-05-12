@@ -22,7 +22,6 @@ from models.Space.earth import Earth
 API_URL = "http://127.0.0.1:8000"
 DATA_DIR = Path("backend/framework/data")
 
-
 class EOPipeline:
     images_in_processing = []
     working_dir = os.getcwd()

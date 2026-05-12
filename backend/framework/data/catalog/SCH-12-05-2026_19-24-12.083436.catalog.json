@@ -1,0 +1,17 @@
+{
+    "eo_product_id": "SCH-12-05-2026_19-24-12.083436",
+    "satellite_id": "Sentinel-1A",
+    "area_name": "Ajstrup Strand",
+    "generated_at": "12-05-2026_19-24-12.083436",
+    "archive_path": "backend\\framework\\data\\archive\\Sentinel-1A\\Ajstrup Strand\\12-05-2026_19-24-12.083436\\EO-Sen1A_image_M58.png",
+    "enhanced_image_path": "backend\\framework\\data\\enhanced\\enhanced_EO-Sen1A_image_M58.png",
+    "quality_score": 0.5271670082601418,
+    "brightness": 0.3830500392156863,
+    "contrast": 0.28823393808891107,
+    "is_visible": true,
+    "is_anomaly": false,
+    "priority": 5.2716700826014184,
+    "meaning": "low_quality",
+    "labels": "1",
+    "centers": "[0.35965323572984753, 0.263441708730062]"
+}

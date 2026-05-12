@@ -1,0 +1,17 @@
+{
+    "eo_product_id": "SCH-12-05-2026_19-25-06.864553",
+    "satellite_id": "Sentinel-1A",
+    "area_name": "Aarhus Harbor",
+    "generated_at": "12-05-2026_19-25-06.864553",
+    "archive_path": "backend\\framework\\data\\archive\\Sentinel-1A\\Aarhus Harbor\\12-05-2026_19-25-06.864553\\EO-Sen1A_image_M05.png",
+    "enhanced_image_path": "backend\\framework\\data\\enhanced\\enhanced_EO-Sen1A_image_M05.png",
+    "quality_score": 0.6322838572636009,
+    "brightness": 0.4848355764705882,
+    "contrast": 0.2948965615860255,
+    "is_visible": true,
+    "is_anomaly": false,
+    "priority": 6.322838572636009,
+    "meaning": "high_quality",
+    "labels": "0",
+    "centers": "[0.4502792017429194, 0.278294275657819]"
+}

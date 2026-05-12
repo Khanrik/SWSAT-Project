@@ -1,0 +1,17 @@
+{
+    "eo_product_id": "SCH-12-05-2026_19-25-25.207908",
+    "satellite_id": "Sentinel-1A",
+    "area_name": "H\u00f8rret",
+    "generated_at": "12-05-2026_19-25-25.207908",
+    "archive_path": "backend\\framework\\data\\archive\\Sentinel-1A\\H\u00f8rret\\12-05-2026_19-25-25.207908\\EO-Sen1A_image_M06.png",
+    "enhanced_image_path": "backend\\framework\\data\\enhanced\\enhanced_EO-Sen1A_image_M06.png",
+    "quality_score": 0.49202147225155546,
+    "brightness": 0.35904464313725487,
+    "contrast": 0.2659536582286012,
+    "is_visible": true,
+    "is_anomaly": false,
+    "priority": 4.920214722515555,
+    "meaning": "low_quality",
+    "labels": "1",
+    "centers": "[0.35965323572984753, 0.263441708730062]"
+}
